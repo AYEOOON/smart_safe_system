@@ -107,9 +107,8 @@
 ## 🎥 프로젝트 동영상 및 설계 사진
 
 - **설계 사진**  
-  ![image](https://github.com/user-attachments/assets/96b0282f-c045-490a-aa52-6d5e0fb4ab78)
+![image](https://github.com/user-attachments/assets/0f0c3a2d-b5da-4e7c-aabe-8555c8d7e592)
 
-  
 
 - **프로젝트 시연 동영상**  
   시연 동영상을 보려면 아래 링크를 클릭하세요:  
