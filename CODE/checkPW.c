@@ -48,7 +48,7 @@ int checkRecoveryAnswer(const char* input) {
 }
 
 // 비밀번호 관리 함수
-void checkPW() {
+void checkPW(SharedData* data) {
     int fd_serial;
     unsigned char dat;
     char input[10] = {0};  // 입력 버퍼
@@ -56,8 +56,6 @@ void checkPW() {
     int safeUnlocked = 0;  // 금고 잠금 상태 (0: 잠금, 1: 해제)
     int attempts = 0;      // 비밀번호 입력 시도 횟수
     int recoveryMode = 0;  // 복구 질문 상태 (0: 비활성, 1: 활성)
-
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // GPIO 초기화
     if (wiringPiSetupGpio() < 0) {
@@ -80,47 +78,44 @@ void checkPW() {
         if (serialDataAvail(fd_serial)) {
             dat = serialRead(fd_serial);  // 1바이트 읽기
 
-            if (recoveryMode == 0) {  // 복구 질문 상태가 아닐 때
+            if (recoveryMode == 0) {  // 복구 질문 모드가 아닐 때
                 if (safeUnlocked == 0) {  // 금고가 잠긴 상태
                     input[inputIndex++] = dat;   // 입력 버퍼에 저장
 
                     if (inputIndex == PASSWORD_LENGTH) {  // 비밀번호 4자리 입력 완료
                         input[inputIndex] = '\0';  // 문자열 종료
 
-                        // 비밀번호 검증
                         if (checkPassword(input)) {
                             printf("Password correct! Unlocking safe.\n");
                             serialWriteBytes(fd_serial, "잠금이 해제되었습니다.\n");
 
-                            // 서보모터를 250도로 회전하여 잠금 해제
-                            rotate_Servo(250);
+                            // 금고 해제
+                            rotate_Servo(250);  // 서보모터를 250도로 회전
                             safeUnlocked = 1;  // 금고 상태를 '해제'로 설정
                             ledControl(safeUnlocked);
 
                             serialWriteBytes(fd_serial, "금고를 잠그려면 '@'를 입력하세요\n");
-
-                            pthread_mutex_lock(&mutex);
+                            pthread_mutex_lock(&data->mutex);
                             attempts = 0;  // 시도 횟수 초기화
-                            pthread_mutex_unlock(&mutex);
+                            pthread_mutex_unlock(&data->mutex);
                         } else {
-                            pthread_mutex_lock(&mutex);
+                            pthread_mutex_lock(&data->mutex);
                             attempts++;  // 실패 시도 횟수 증가
-                            int currentAttempts = attempts;
-                            pthread_mutex_unlock(&mutex);
+                            pthread_mutex_unlock(&data->mutex);
 
-                            printf("Password incorrect. Attempt %d/%d.\n", currentAttempts, MAX_ATTEMPTS);
+                            printf("Password incorrect. Attempt %d/%d.\n", attempts, MAX_ATTEMPTS);
                             char attemptMessage[50];
-                            snprintf(attemptMessage, sizeof(attemptMessage), "비밀번호 틀림: %d/%d\n", currentAttempts, MAX_ATTEMPTS);
+                            snprintf(attemptMessage, sizeof(attemptMessage), "비밀번호 틀림: %d/%d\n", attempts, MAX_ATTEMPTS);
                             serialWriteBytes(fd_serial, attemptMessage);
 
-                            if (currentAttempts >= MAX_ATTEMPTS) {
+                            if (attempts >= MAX_ATTEMPTS) {
                                 printf("Maximum attempts reached. Activating recovery mode.\n");
                                 serialWriteBytes(fd_serial, "비밀번호 입력 시도 초과! 출신 학교가 어디입니까?\n");
 
-                                pthread_mutex_lock(&mutex);
+                                pthread_mutex_lock(&data->mutex);
                                 recoveryMode = 1;  // 복구 질문 활성화
-                                attempts = 0;  // 복구 질문 시도 횟수를 초기화
-                                pthread_mutex_unlock(&mutex);
+                                attempts = 0;      // 복구 질문 시도 횟수를 초기화
+                                pthread_mutex_unlock(&data->mutex);
                             } else {
                                 serialWriteBytes(fd_serial, "비밀번호가 틀렸습니다. 다시 입력하세요.\n");
                             }
@@ -129,19 +124,8 @@ void checkPW() {
                         inputIndex = 0;  // 다음 입력을 위해 초기화
                         memset(input, 0, sizeof(input));  // 입력 버퍼 초기화
                     }
-                } else {  // 금고가 해제된 상태
-                    if (dat == '@') {  // '@' 입력 시 금고 잠금
-                        printf("Locking safe.\n");
-                        serialWriteBytes(fd_serial, "금고가 잠겼습니다.\n");
-
-                        // 서보모터를 50도로 회전하여 잠금
-                        rotate_Servo(50);
-                        safeUnlocked = 0;  // 금고 상태를 '잠금'으로 설정
-                        ledControl(safeUnlocked);
-                        serialWriteBytes(fd_serial, "비밀번호를 입력하세요\n");
-                    }
                 }
-            } else {  // 복구 질문 상태
+            } else {  // 복구 질문 모드
                 input[inputIndex++] = dat;  // 입력 버퍼에 저장
 
                 if (dat == '\n' || inputIndex >= (int)sizeof(input) - 1) {  // 엔터키 입력 또는 버퍼 초과
@@ -151,12 +135,12 @@ void checkPW() {
                         printf("Recovery answer correct. Resetting attempts.\n");
                         serialWriteBytes(fd_serial, "정답입니다. 다시 비밀번호를 입력하세요.\n");
 
-                        pthread_mutex_lock(&mutex);
+                        pthread_mutex_lock(&data->mutex);
                         attempts = 0;  // 시도 횟수 초기화
                         recoveryMode = 0;  // 복구 질문 비활성
-                        pthread_mutex_unlock(&mutex);
+                        pthread_mutex_unlock(&data->mutex);
                     } else {
-                        printf("Recovery answer incorrect.\n");
+                        printf("Recovery answer incorrect. Program exiting.\n");
                         serialWriteBytes(fd_serial, "정답이 틀렸습니다. 프로그램을 종료합니다.\n");
                         exit(1);  // 프로그램 종료
                     }
@@ -165,6 +149,17 @@ void checkPW() {
                     memset(input, 0, sizeof(input));  // 버퍼 초기화
                 }
             }
+        }
+
+        if (safeUnlocked == 1 && dat == '@') {  // '@' 입력 시 금고 잠금
+            printf("Locking safe.\n");
+            serialWriteBytes(fd_serial, "금고가 잠겼습니다.\n");
+
+            // 금고 잠금
+            rotate_Servo(50);  // 서보모터를 50도로 회전
+            safeUnlocked = 0;  // 금고 상태를 '잠금'으로 설정
+            ledControl(safeUnlocked);
+            serialWriteBytes(fd_serial, "비밀번호를 입력하세요\n");
         }
 
         delay(10);  // CPU 사용량 줄이기
