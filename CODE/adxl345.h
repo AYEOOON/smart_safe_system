@@ -36,5 +36,7 @@ void readAccelerometerData(short *x, short *y, short *z);
 void *sensorThread(void *arg);
 void *buzzerThread(void *arg);
 void triggerBuzzer(int durationMs); // 공용 부저 제어 함수
+void triggerBuzzerPWM(int durationMs, int frequency);
+
 
 #endif

@@ -70,7 +70,7 @@ void checkPW() {
     }
 
     // 블루투스 연결 성공 메시지
-    printf("Bluetooth connection established.\n");
+    printf("블루투스 연결이 완료 되었습니다.\n");
     serialWriteBytes(fd_serial, "비밀번호를 입력하세요\n");
 
     while (1) {
@@ -87,7 +87,7 @@ void checkPW() {
                         
                         // 비밀번호 검증
                         if (checkPassword(input)) {
-                            printf("Password correct! Unlocking safe.\n");
+                            printf("비밀번호 일치! 금고 해제\n");
                             serialWriteBytes(fd_serial, "잠금이 해제되었습니다.\n");
 
                             // 서보모터를 250도로 회전하여 잠금 해제
@@ -100,7 +100,13 @@ void checkPW() {
                             attempts = 0;  // 시도 횟수 초기화
                         } else {
                             attempts++;  // 실패 시도 횟수 증가
-                            printf("Password incorrect. Attempt %d/%d.\n", attempts, MAX_ATTEMPTS);
+                            printf("비밀번호 틀림: %d/%d.\n", attempts, MAX_ATTEMPTS);
+
+                            // 실패 시도 횟수를 휴대폰에 출력
+                                char attemptMessage[50];
+                                snprintf(attemptMessage, sizeof(attemptMessage), "비밀번호 틀림: %d/%d\n", attempts, MAX_ATTEMPTS);
+                                serialWriteBytes(fd_serial, attemptMessage);
+
                             if (attempts >= MAX_ATTEMPTS) {
                                 serialWriteBytes(fd_serial, "비밀번호 입력 시도 초과! 출신 학교가 어디입니까?\n");
                                 recoveryMode = 1;  // 복구 질문 활성화
@@ -139,17 +145,22 @@ void checkPW() {
                     } else {
                         printf("Recovery answer incorrect.\n");
                         serialWriteBytes(fd_serial, "정답이 틀렸습니다. 프로그램을 종료합니다.\n");
-                        exit(1);
+                        exit(1);  // 프로그램 종료
                     }
 
                     inputIndex = 0;  // 입력 버퍼 초기화
                     memset(input, 0, sizeof(input));  // 버퍼 초기화
                 }
             }
+
+            // 복구 질문 이후 시도 초과 처리
+            if (recoveryMode == 1 && attempts >= MAX_ATTEMPTS) {
+                printf("Maximum attempts exceeded after recovery. Exiting program.\n");
+                serialWriteBytes(fd_serial, "비밀번호 입력 시도 초과. 프로그램을 종료합니다.\n");
+                exit(1);  // 프로그램 종료
+            }
         }
 
         delay(10);  // CPU 사용량 줄이기
     }
 }
-//복구 질문 후 3번 틀리면 연결 종료
-//복구 질문 틀리면 종료
