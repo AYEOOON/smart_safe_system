@@ -26,6 +26,7 @@ typedef struct {
     short x, y, z;             // 가속도 데이터
     pthread_mutex_t mutex;     // 데이터 보호용 뮤텍스
     int running;               // 스레드 종료 플래그
+    int triggerBuzzer;
 } SharedData;
 
 // 함수 선언

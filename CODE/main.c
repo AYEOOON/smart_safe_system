@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <wiringPi.h>
-#include "adxl345.h"
+// #include "adxl345.h"
 #include "checkPW.h"
 
 #define LED1 23 // LED1 GPIO 핀
@@ -14,8 +14,17 @@ SharedData sharedData = {
     .x = 0,
     .y = 0,
     .z = 0,
-    .running = 1
+    .running = 1,
+    .mutex = PTHREAD_MUTEX_INITIALIZER,
+    .triggerBuzzer = 0
 };
+
+// SharedData sharedData = {
+//     .mutex = PTHREAD_MUTEX_INITIALIZER,
+//     .triggerBuzzer = 0
+//};
+// SharedData *data = &sharedData; // 포인터 설정
+
 
 // LED 상태 제어 함수
 void ledControl(int safeUnlocked) {
