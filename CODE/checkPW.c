@@ -49,6 +49,7 @@ int checkRecoveryAnswer(const char* input) {
 
 // 비밀번호 관리 함수
 void checkPW() {
+    extern SharedData *data;  // SharedData 포인터가 외부에서 정의되어 있다고 가정
     int fd_serial;
     unsigned char dat;
     char input[10] = {0};  // 입력 버퍼
@@ -70,7 +71,7 @@ void checkPW() {
     }
 
     // 블루투스 연결 성공 메시지
-    printf("블루투스 연결이 완료 되었습니다.\n");
+    printf("Bluetooth connection established.\n");
     serialWriteBytes(fd_serial, "비밀번호를 입력하세요\n");
 
     while (1) {
@@ -84,10 +85,10 @@ void checkPW() {
 
                     if (inputIndex == PASSWORD_LENGTH) {  // 비밀번호 4자리 입력 완료
                         input[inputIndex] = '\0';  // 문자열 종료
-                        
+
                         // 비밀번호 검증
                         if (checkPassword(input)) {
-                            printf("비밀번호 일치! 금고 해제\n");
+                            printf("Password correct! Unlocking safe.\n");
                             serialWriteBytes(fd_serial, "잠금이 해제되었습니다.\n");
 
                             // 서보모터를 250도로 회전하여 잠금 해제
@@ -97,19 +98,28 @@ void checkPW() {
 
                             // 사용자에게 잠금 안내 메시지
                             serialWriteBytes(fd_serial, "금고를 잠그려면 '@'를 입력하세요\n");
-                            attempts = 0;  // 시도 횟수 초기화
+
+                            // 여기서 attempts를 0으로 초기화할 때 뮤텍스 보호
+                            pthread_mutex_lock(&data->mutex);
+                            attempts = 0;
+                            pthread_mutex_unlock(&data->mutex);
+
                         } else {
+                            // 비밀번호 틀린 경우
+                            pthread_mutex_lock(&data->mutex);
                             attempts++;  // 실패 시도 횟수 증가
-                            printf("비밀번호 틀림: %d/%d.\n", attempts, MAX_ATTEMPTS);
+                            int currentAttempts = attempts;
+                            pthread_mutex_unlock(&data->mutex);
 
-                            // 실패 시도 횟수를 휴대폰에 출력
-                                char attemptMessage[50];
-                                snprintf(attemptMessage, sizeof(attemptMessage), "비밀번호 틀림: %d/%d\n", attempts, MAX_ATTEMPTS);
-                                serialWriteBytes(fd_serial, attemptMessage);
-
-                            if (attempts >= MAX_ATTEMPTS) {
+                            printf("Password incorrect. Attempt %d/%d.\n", currentAttempts, MAX_ATTEMPTS);
+                            if (currentAttempts >= MAX_ATTEMPTS) {
                                 serialWriteBytes(fd_serial, "비밀번호 입력 시도 초과! 출신 학교가 어디입니까?\n");
-                                recoveryMode = 1;  // 복구 질문 활성화
+
+                                // 시도 횟수 초과 시 buzzerThread를 통해 부저를 울릴 수 있도록 플래그 설정
+                                pthread_mutex_lock(&data->mutex);
+                                data->triggerBuzzer = 1;  // 부저 스레드에서 이 값을 감지해 부저 울림
+                                recoveryMode = 1;         // 복구 질문 활성화
+                                pthread_mutex_unlock(&data->mutex);
                             } else {
                                 serialWriteBytes(fd_serial, "비밀번호가 틀렸습니다. 다시 입력하세요.\n");
                             }
@@ -127,40 +137,39 @@ void checkPW() {
                         rotate_Servo(50);
                         safeUnlocked = 0;  // 금고 상태를 '잠금'으로 설정
                         ledControl(safeUnlocked);
-                        // 사용자에게 비밀번호 입력 안내 메시지 전송
+
                         serialWriteBytes(fd_serial, "비밀번호를 입력하세요\n");
                     }
                 }
             } else {  // 복구 질문 상태
                 input[inputIndex++] = dat;  // 입력 버퍼에 저장
 
-                if (dat == '\n' || inputIndex >= sizeof(input) - 1) {  // 엔터키 입력 또는 버퍼 초과
+                if (dat == '\n' || inputIndex >= (int)sizeof(input) - 1) {  // 엔터키 입력 또는 버퍼 초과
                     input[inputIndex] = '\0';  // 문자열 종료
 
                     if (checkRecoveryAnswer(input)) {
                         printf("Recovery answer correct. Resetting attempts.\n");
                         serialWriteBytes(fd_serial, "정답입니다. 다시 비밀번호를 입력하세요.\n");
-                        attempts = 0;  // 시도 횟수 초기화
-                        recoveryMode = 0;  // 복구 질문 비활성
+
+                        pthread_mutex_lock(&data->mutex);
+                        attempts = 0;     // 시도 횟수 초기화
+                        recoveryMode = 0; // 복구 질문 비활성
+                        data->triggerBuzzer = 0; // 복구 성공 시 부저신호 해제(필요하다면)
+                        pthread_mutex_unlock(&data->mutex);
+
                     } else {
                         printf("Recovery answer incorrect.\n");
                         serialWriteBytes(fd_serial, "정답이 틀렸습니다. 프로그램을 종료합니다.\n");
-                        exit(1);  // 프로그램 종료
+                        exit(1);
                     }
 
                     inputIndex = 0;  // 입력 버퍼 초기화
                     memset(input, 0, sizeof(input));  // 버퍼 초기화
                 }
             }
-
-            // 복구 질문 이후 시도 초과 처리
-            if (recoveryMode == 1 && attempts >= MAX_ATTEMPTS) {
-                printf("Maximum attempts exceeded after recovery. Exiting program.\n");
-                serialWriteBytes(fd_serial, "비밀번호 입력 시도 초과. 프로그램을 종료합니다.\n");
-                exit(1);  // 프로그램 종료
-            }
         }
 
         delay(10);  // CPU 사용량 줄이기
     }
 }
+
