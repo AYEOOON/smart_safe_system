@@ -1,4 +1,5 @@
 #include "checkPW.h"
+#include "adxl345.h"
 
 // 비밀번호와 복구 질문 정답
 const char password[PASSWORD_LENGTH] = {'1', '2', '3', '4'};
