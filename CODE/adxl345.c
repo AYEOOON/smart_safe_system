@@ -59,49 +59,74 @@ void triggerBuzzer(int durationMs) {
     digitalWrite(BUZZER_GPIO, LOW);
 }
 
+void triggerBuzzerPWM(int durationMs, int frequency) {
+    softToneCreate(BUZZER_GPIO);  // 소프트웨어 PWM 초기화
+    softToneWrite(BUZZER_GPIO, frequency); // 주파수 설정
+    delay(durationMs); // 소리 지속 시간
+    softToneWrite(BUZZER_GPIO, 0); // PWM 끄기
+}
+
 // 센서 데이터를 읽는 스레드
 void *sensorThread(void *arg) {
     SharedData *data = (SharedData *)arg;
-
+    short prevX = 13, prevY = 4, prevZ = 0;
     while (data->running) {
         short x, y, z;
         readAccelerometerData(&x, &y, &z);
+
+        //값이 너무 튀는 경우 방지
+        if(abs(x) > 250)
+        {
+            x = 0;
+        }
+        if(abs(y) > 250)
+        {
+            y = 0;
+        }
+        if(abs(z) > 100)
+        {
+            z = 0;
+        }
 
         pthread_mutex_lock(&data->mutex);
         data->x = x;
         data->y = y;
         data->z = z;
+
+        // 이전값과의 차이를 계산
+        if (abs(x - prevX) > 100 || abs(y - prevY) > 100 || abs(z - prevZ) > 100) {
+            data->triggerBuzzer = 1; // 부저 활성화 플래그 설정
+        }
         pthread_mutex_unlock(&data->mutex);
+
+        // 현재값을 이전값으로 저장
+        prevX = x;
+        prevY = y;
+        prevZ = z;
 
         usleep(50000); // 50ms 대기
     }
     return NULL;
 }
 
+// 부저 스레드
 void *buzzerThread(void *arg) {
     SharedData *data = (SharedData *)arg;
-    const short threshold = 50;
+    const int duration = 1500; // 부저 울림 시간 (300ms)
     const int frequency = 3000; // 부저 주파수 (3kHz)
 
     while (data->running) {
         pthread_mutex_lock(&data->mutex);
-        short x = data->x, y = data->y, z = data->z;
-        pthread_mutex_unlock(&data->mutex);
+        if (data->triggerBuzzer) {
+            data->triggerBuzzer = 0; // 플래그 초기화
+            pthread_mutex_unlock(&data->mutex);
 
-        short deltaX = abs(x), deltaY = abs(y), deltaZ = abs(z);
-
-        if (deltaX > threshold || deltaY > threshold || deltaZ > threshold) {
-            triggerBuzzerPWM(300, frequency); // 300ms 동안 3kHz 소리
+            triggerBuzzerPWM(duration, frequency); // 부저 작동
+        } else {
+            pthread_mutex_unlock(&data->mutex);
         }
 
         usleep(100000); // 100ms 대기
     }
     return NULL;
-}
-
-void triggerBuzzerPWM(int durationMs, int frequency) {
-    softToneCreate(BUZZER_GPIO);  // 소프트웨어 PWM 초기화
-    softToneWrite(BUZZER_GPIO, frequency); // 주파수 설정
-    delay(durationMs); // 소리 지속 시간
-    softToneWrite(BUZZER_GPIO, 0); // PWM 끄기
 }
