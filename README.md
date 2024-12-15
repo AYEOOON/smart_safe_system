@@ -164,8 +164,8 @@
 - **프로젝트 시연 동영상**  
   - 잠금 해제 1
     - 첫 시도에 잠금 해제하는 경우
-      
-https://github.com/user-attachments/assets/a1bf8d51-70a8-48e2-bc75-a86c381aa04c
+
+https://github.com/user-attachments/assets/4c12469d-2c60-4fe5-bf89-9a35286dfe9b
 
 <img src="https://github.com/user-attachments/assets/0559d63c-82b9-4512-b933-910b839538fe" width="300" />
 
