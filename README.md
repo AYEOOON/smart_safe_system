@@ -2,11 +2,10 @@
 
 ## 2024-2 임베디드 시스템 02분반 6조
 
-#### 20190362 김희겸
-#### 20200888 이재우
-#### 20220242 김아연
-#### 20220625 신채연
-
+#### 20190362 김희겸 👴
+#### 20200888 이재우 🏋️‍♀️
+#### 20220242 김아연 🧙‍♂️
+#### 20220625 신채연 🕵️‍♂️
 
 ## 📌 1. 프로젝트 개요
 
@@ -43,6 +42,9 @@
 
 
 ## 🛠️ 3. 설계 개요
+### 🔍 설계 사진
+![image](https://github.com/user-attachments/assets/0f0c3a2d-b5da-4e7c-aabe-8555c8d7e592)
+
 
 ### 🎛️ 시스템 구성
 - **스위치**: 블루투스 통신 활성화
@@ -122,8 +124,8 @@
 ### (5) LED 상태 및 경고음
 - **LED 상태 표시**  
   - 초록색 LED: 인증 성공 및 금고 잠금 해제 표시.  
-  - 빨간색 LED: 인증 실패 및 잠금 유지 표시.  
-  - 움직임 감지 시 경고 LED 점등.
+  - 빨간색 LED: 인증 실패 및 잠금 유지 표시.
+
 
 - **경고음 발생**  
   - 금고가 움직이거나 충격이 발생하면 부저를 울려 경고음을 출력.  
@@ -149,19 +151,14 @@
    - 이상이 없으면 정상 대기 상태 유지.
 
 
-## 🎥 7. 프로젝트 동영상 및 설계 사진
-
-- **설계 사진**  
-![image](https://github.com/user-attachments/assets/0f0c3a2d-b5da-4e7c-aabe-8555c8d7e592)
-
-
+## 🎥 7. 프로젝트 시연 동영상
 - **프로젝트 시연 동영상**  
   - 잠금 해제 1
     - 첫 시도에 잠금 해제하는 경우
       
 https://github.com/user-attachments/assets/a1bf8d51-70a8-48e2-bc75-a86c381aa04c
 
-<img src="https://github.com/user-attachments/assets/61192236-3ebe-462b-bb50-f7c30b27eb96" width="300" />
+<img src="https://github.com/user-attachments/assets/0559d63c-82b9-4512-b933-910b839538fe" width="300" />
 
 ---
 
@@ -170,7 +167,7 @@ https://github.com/user-attachments/assets/a1bf8d51-70a8-48e2-bc75-a86c381aa04c
 
 https://github.com/user-attachments/assets/4e36a09b-10d6-4e73-bd57-1084b098775e
 
-<img src="https://github.com/user-attachments/assets/27c8ebc7-36bb-4246-8499-68adff49fbd9" width="300" />
+<img src="https://github.com/user-attachments/assets/48a2db38-89c6-4133-862c-e30efb08b104" width="300" />
 
 ---
 
@@ -178,7 +175,7 @@ https://github.com/user-attachments/assets/4e36a09b-10d6-4e73-bd57-1084b098775e
     
 https://github.com/user-attachments/assets/6d1f785f-994d-4a8c-b0b2-6ee003f67b2a
 
-<img src="https://github.com/user-attachments/assets/47517137-c430-464b-b8b1-0ee8018d17a3" width="300" />
+<img src="https://github.com/user-attachments/assets/b7b8bf47-e589-4b8c-998d-a52317af92e3" width="300" />
 
 ---
 
@@ -186,7 +183,7 @@ https://github.com/user-attachments/assets/6d1f785f-994d-4a8c-b0b2-6ee003f67b2a
 
 https://github.com/user-attachments/assets/9ac86663-bbeb-430d-9497-d364cd326788
 
-<img src="https://github.com/user-attachments/assets/f8aba50a-d584-4b81-a627-a88226a5594d" width="300" />
+<img src="https://github.com/user-attachments/assets/effe9537-e587-473a-8608-593d7095ec35" width="300" />
 
 ---
 
