@@ -107,63 +107,82 @@ void handleRecovery(int fd_serial, SharedData* data, char* input, int* attempts,
 
 // 비밀번호 관리 함수
 void checkPW() {
-    extern SharedData* data;
-    int fd_serial;
-    unsigned char dat;
-    char input[10] = {0};
-    int inputIndex = 0;
-    int safeUnlocked = 0;
-    int attempts = 0;
-    int recoveryMode = 0;
+    extern SharedData* data;  // SharedData 구조체 포인터를 외부에서 가져옴
+    int fd_serial;            // 시리얼 장치 파일 디스크립터
+    unsigned char dat;        // 수신된 데이터 저장 변수
+    char input[10] = {0};     // 사용자 입력을 저장하는 버퍼
+    int inputIndex = 0;       // 현재 입력 인덱스
+    int safeUnlocked = 0;     // 금고 상태 플래그 (0: 잠금, 1: 해제)
+    int attempts = 0;         // 비밀번호 입력 실패 횟수
+    int recoveryMode = 0;     // 복구 모드 플래그 (0: 비활성, 1: 활성)
 
+    // GPIO 초기화
     if (wiringPiSetupGpio() < 0) {
         printf("Failed to setup GPIO.\n");
         return;
     }
 
+    // UART 초기화
     if ((fd_serial = serialOpen(UART2_DEV, BAUD_RATE)) < 0) {
         printf("Unable to open serial device.\n");
         return;
     }
 
+    // 초기화 메시지 출력
     printf("Bluetooth connection established.\n");
     serialWriteBytes(fd_serial, "비밀번호를 입력하세요\n");
 
+    // 메인 루프
     while (1) {
+        // 수신 데이터가 있을 경우 처리
         if (serialDataAvail(fd_serial)) {
-            dat = serialRead(fd_serial);
+            dat = serialRead(fd_serial);  // 1바이트 데이터 읽기
 
-            if (recoveryMode == 0) {
-                if (safeUnlocked == 0) {
-                    input[inputIndex++] = dat;
+            if (recoveryMode == 0) {  // 복구 모드가 비활성화된 경우
+                if (safeUnlocked == 0) {  // 금고가 잠긴 상태
+                    input[inputIndex++] = dat;  // 입력 데이터를 버퍼에 저장
 
-                    if (inputIndex == PASSWORD_LENGTH) {
-                        input[inputIndex] = '\0';
+                    if (inputIndex == PASSWORD_LENGTH) {  // 비밀번호 길이만큼 입력받았을 때
+                        input[inputIndex] = '\0';  // 문자열 종료
 
-                        if (validateInput(input, password, PASSWORD_LENGTH)) {
+                        if (validateInput(input, password, PASSWORD_LENGTH)) {  // 비밀번호 검증
                             handleUnlock(fd_serial, data, &attempts, &safeUnlocked);
                         } else {
                             handlePasswordFailure(fd_serial, data, &attempts, &recoveryMode);
                         }
 
-                        inputIndex = 0;
+                        inputIndex = 0;  // 입력 버퍼 초기화
                         memset(input, 0, sizeof(input));
                     }
-                } else if (dat == '@') {
+                } else if (dat == '@') {  // 금고가 해제된 상태에서 '@' 입력 시 잠금
                     handleLock(fd_serial, &safeUnlocked);
                 }
-            } else {
-                input[inputIndex++] = dat;
+            } else {  // 복구 모드가 활성화된 경우
+                input[inputIndex++] = dat;  // 입력 데이터를 버퍼에 저장
 
-                if (dat == '\n' || inputIndex >= (int)sizeof(input) - 1) {
-                    input[inputIndex] = '\0';
-                    handleRecovery(fd_serial, data, input, &attempts, &recoveryMode);
-                    inputIndex = 0;
+                if (dat == '\n' || inputIndex >= (int)sizeof(input) - 1) {  // 엔터 입력 또는 버퍼 초과
+                    input[inputIndex] = '\0';  // 문자열 종료
+
+                    if (!validateInput(input, recoveryAnswer, RECOVERY_ANSWER_LENGTH)) {
+                        pthread_mutex_lock(&data->mutex);
+                        attempts++;
+                        pthread_mutex_unlock(&data->mutex);
+                        if (attempts >= MAX_ATTEMPTS) {
+                            printf("Recovery attempts exceeded. Exiting program.\n");
+                            serialWriteBytes(fd_serial, "비밀번호 입력 시도 초과. 프로그램을 종료합니다.\n");
+                            exit(1);
+                        }
+                    } else {
+                        attempts = 0;  // 복구 질문 성공 시 시도 횟수 초기화
+                        recoveryMode = 0;
+                    }
+
+                    inputIndex = 0;  // 입력 버퍼 초기화
                     memset(input, 0, sizeof(input));
                 }
             }
         }
 
-        delay(10);
+        delay(10);  // CPU 사용량 줄이기 위해 대기
     }
 }
