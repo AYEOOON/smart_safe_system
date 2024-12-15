@@ -156,9 +156,46 @@
 
 
 - **프로젝트 시연 동영상**  
-  시연 동영상을 보려면 아래 링크를 클릭하세요:  
-  📺 링크 삽입
+  - 잠금 해제 1
+    - 첫 시도에 잠금 해제하는 경우
+      
+https://github.com/user-attachments/assets/a1bf8d51-70a8-48e2-bc75-a86c381aa04c
+
+<img src="https://github.com/user-attachments/assets/61192236-3ebe-462b-bb50-f7c30b27eb96" width="300" />
+
+---
+
+  - 잠금 해제 2
+    - 복구 질문 인증 후 잠금 해제하는 경우
+
+https://github.com/user-attachments/assets/4e36a09b-10d6-4e73-bd57-1084b098775e
+
+<img src="https://github.com/user-attachments/assets/27c8ebc7-36bb-4246-8499-68adff49fbd9" width="300" />
+
+---
+
+  - 복구 질문에 대한 답이 틀린 경우
+    
+https://github.com/user-attachments/assets/6d1f785f-994d-4a8c-b0b2-6ee003f67b2a
+
+<img src="https://github.com/user-attachments/assets/47517137-c430-464b-b8b1-0ee8018d17a3" width="300" />
+
+---
+
+  - 복구 질문을 통과한 후 3회 틀릴 경우
+
+https://github.com/user-attachments/assets/9ac86663-bbeb-430d-9497-d364cd326788
+
+<img src="https://github.com/user-attachments/assets/f8aba50a-d584-4b81-a627-a88226a5594d" width="300" />
+
+---
+
+  - 금고를 도둑질 하려는 경우
+
+https://github.com/user-attachments/assets/ce64c342-890e-40ff-9b80-c0cc89e04f33
 
 
+
+---
 
 > 💡 프로젝트에 대한 의견 및 피드백은 언제든지 환영합니다!.._
