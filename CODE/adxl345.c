@@ -69,23 +69,23 @@ void triggerBuzzerPWM(int durationMs, int frequency) {
 // 센서 데이터를 읽는 스레드
 void *sensorThread(void *arg) {
     SharedData *data = (SharedData *)arg;
-    short prevX = 13, prevY = 4, prevZ = 0;
+    short prevX = 1, prevY = 50, prevZ = 118;
     while (data->running) {
         short x, y, z;
         readAccelerometerData(&x, &y, &z);
 
         //값이 너무 튀는 경우 방지
-        if(abs(x) > 250)
+        if(abs(x) > 500)
         {
-            x = 0;
+            x = 1;
         }
-        if(abs(y) > 250)
+        // if(abs(y) > 250)
+        // {
+        //     y = 0;
+        // }
+        if(abs(z) > 200)
         {
-            y = 0;
-        }
-        if(abs(z) > 100)
-        {
-            z = 0;
+            z = 118;
         }
 
         pthread_mutex_lock(&data->mutex);
@@ -112,7 +112,7 @@ void *sensorThread(void *arg) {
 // 부저 스레드
 void *buzzerThread(void *arg) {
     SharedData *data = (SharedData *)arg;
-    const int duration = 1500; // 부저 울림 시간 (300ms)
+    const int duration = 800; // 부저 울림 시간 (80ms)
     const int frequency = 3000; // 부저 주파수 (3kHz)
 
     while (data->running) {
