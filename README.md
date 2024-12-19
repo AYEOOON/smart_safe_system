@@ -9,14 +9,14 @@
 - **20220625 신채연**
 
 ### 🧾 목차
-1. [1. 프로젝트 개요](#-1-프로젝트-개요)  
-2. [2. 주요 기능](#-2-주요-기능)  
-3. [3. 설계 개요](#%EF%B8%8F-3-설계-개요)  
-4. [4. 하드웨어 구성](#%EF%B8%8F-4-하드웨어-구성)  
-5. [5. 소프트웨어 구성](#-5-소프트웨어-구성)
-6. [6. 로직 전체 설명](
-7. [7. 코드 구조 및 설명](#-6-코드-구조-및-설명)
-8. [7. 프로젝트 시연 동영상](#-7-프로젝트-시연-동영상)  
+1. [프로젝트 개요](#-1-프로젝트-개요)  
+2. [주요 기능](#-2-주요-기능)  
+3. [설계 개요](#%EF%B8%8F-3-설계-개요)  
+4. [하드웨어 구성](#%EF%B8%8F-4-하드웨어-구성)  
+5. [소프트웨어 구성](#-5-소프트웨어-구성)  
+6. [로직 전체 설명](#-6-로직-전체-설명)  
+7. [코드 구조 및 설명](#-7-코드-구조-및-설명)  
+8. [프로젝트 시연 동영상](#-8-프로젝트-시연-동영상)   
 
 
 ### 📌 1. 프로젝트 개요
@@ -161,8 +161,253 @@
    - 금고 이동 또는 충격 시 부저 울림 및 경고 LED 점등.
    - 이상이 없으면 정상 대기 상태 유지.
 
+### ⚓ 7. 코드 구조 및 설명
+스마트 금고 시스템의 코드는 기능별로 나뉘어 있으며, 주요 구성 요소는 다음과 같습니다:
 
-### 🎥 7. 프로젝트 시연 동영상
+
+#### 1. SPI 초기화 및 GPIO 설정
+
+**설명**  
+라즈베리 파이에서 SPI 통신 및 GPIO 핀을 초기화하여 하드웨어와 통신 가능하게 설정합니다.
+
+**주요 기능**
+- SPI 초기화
+- GPIO 핀 모드 설정
+- 초기 상태 설정
+
+```c
+int initSPI() {
+    if (wiringPiSetupGpio() == -1) {
+        fprintf(stderr, "Failed to setup GPIO.\n");
+        return -1;
+    }
+
+    if (wiringPiSPISetupMode(SPI_CH, SPI_SPEED, SPI_MODE) == -1) {
+        fprintf(stderr, "Failed to setup SPI.\n");
+        return -1;
+    }
+
+    pinMode(CS_GPIO, OUTPUT);
+    pinMode(BUZZER_GPIO, OUTPUT);
+    digitalWrite(CS_GPIO, HIGH); // CS 초기화
+    digitalWrite(BUZZER_GPIO, LOW); // 부저 초기화
+    return 0;
+}
+```
+
+
+
+#### 2. ADXL345 센서 제어
+
+**설명**  
+가속도 센서(ADXL345)와 SPI를 통해 통신하여 데이터를 읽고, 금고 움직임을 감지합니다.
+
+**주요 기능**  
+센서 레지스터 쓰기/읽기
+가속도 데이터 읽기
+움직임 값 확인
+
+**(1) 레지스터 쓰기 및 읽기***
+```c
+void writeRegister_ADXL345(char address, char value) {
+    unsigned char buff[2] = { address, value };
+    digitalWrite(CS_GPIO, LOW);
+    wiringPiSPIDataRW(SPI_CH, buff, 2);
+    digitalWrite(CS_GPIO, HIGH);
+}
+
+void readRegister_ADXL345(char registerAddress, int numBytes, char *values) {
+    values[0] = 0x80 | registerAddress;
+    if (numBytes > 1) values[0] |= 0x40;
+
+    digitalWrite(CS_GPIO, LOW);
+    wiringPiSPIDataRW(SPI_CH, values, numBytes + 1);
+    digitalWrite(CS_GPIO, HIGH);
+}
+```
+
+**(2) 가속도 데이터 읽기***
+```c
+void readAccelerometerData(short *x, short *y, short *z) {
+    unsigned char buffer[7] = {0};
+    readRegister_ADXL345(DATAX0, 6, buffer);
+
+    *x = ((short)buffer[2] << 8) | (short)buffer[1];
+    *y = ((short)buffer[4] << 8) | (short)buffer[3];
+    *z = ((short)buffer[6] << 8) | (short)buffer[5];
+}
+```
+
+
+
+#### 3. ADXL345 센서 제어
+
+**설명**  
+가속도 센서와 SPI 통신을 통해 데이터를 읽고 금고의 움직임을 감지합니다.
+
+**주요 코드**  
+
+**(1) 레지스터 쓰기 및 읽기***
+```c
+void writeRegister_ADXL345(char address, char value) {
+    unsigned char buff[2] = { address, value };
+    digitalWrite(CS_GPIO, LOW);
+    wiringPiSPIDataRW(SPI_CH, buff, 2);
+    digitalWrite(CS_GPIO, HIGH);
+}
+
+void readRegister_ADXL345(char registerAddress, int numBytes, char *values) {
+    values[0] = 0x80 | registerAddress;
+    if (numBytes > 1) values[0] |= 0x40;
+
+    digitalWrite(CS_GPIO, LOW);
+    wiringPiSPIDataRW(SPI_CH, values, numBytes + 1);
+    digitalWrite(CS_GPIO, HIGH);
+}
+```
+
+#### (2) 가속도 데이터 읽기
+```c
+void readAccelerometerData(short *x, short *y, short *z) {
+    unsigned char buffer[7] = {0};
+    readRegister_ADXL345(DATAX0, 6, buffer);
+
+    *x = ((short)buffer[2] << 8) | (short)buffer[1];
+    *y = ((short)buffer[4] << 8) | (short)buffer[3];
+    *z = ((short)buffer[6] << 8) | (short)buffer[5];
+}
+```
+
+
+
+#### 4. 부저 제어
+**설명**
+부저를 통해 경고음을 발생시키며, 소프트웨어 PWM을 사용하여 주파수를 제어합니다.
+
+**주요 코드**
+```c
+void triggerBuzzer(int durationMs) {
+    digitalWrite(BUZZER_GPIO, HIGH);
+    delay(durationMs);
+    digitalWrite(BUZZER_GPIO, LOW);
+}
+
+void triggerBuzzerPWM(int durationMs, int frequency) {
+    softToneCreate(BUZZER_GPIO);
+    softToneWrite(BUZZER_GPIO, frequency);
+    delay(durationMs);
+    softToneWrite(BUZZER_GPIO, 0);
+}
+```
+
+
+
+#### 5. 멀티스레드 구성
+**설명**
+스레드를 사용하여 센서 데이터를 읽고, 부저를 제어하는 작업을 병렬로 처리합니다.
+
+**주요 코드**
+**(1) 센서 스레드**
+```c
+void *sensorThread(void *arg) {
+    SharedData *data = (SharedData *)arg;
+    short prevX = 1, prevY = 50, prevZ = 118;
+    while (data->running) {
+        short x, y, z;
+        readAccelerometerData(&x, &y, &z);
+
+        if (abs(x - prevX) > 100 || abs(y - prevY) > 100 || abs(z - prevZ) > 100) {
+            data->triggerBuzzer = 1;
+        }
+
+        pthread_mutex_lock(&data->mutex);
+        data->x = x;
+        data->y = y;
+        data->z = z;
+        pthread_mutex_unlock(&data->mutex);
+
+        prevX = x;
+        prevY = y;
+        prevZ = z;
+
+        usleep(50000);
+    }
+    return NULL;
+}
+```
+
+
+**(2) 부저 스레드**
+```c
+void *buzzerThread(void *arg) {
+    SharedData *data = (SharedData *)arg;
+    const int duration = 800;
+    const int frequency = 3000;
+
+    while (data->running) {
+        pthread_mutex_lock(&data->mutex);
+        if (data->triggerBuzzer) {
+            data->triggerBuzzer = 0;
+            pthread_mutex_unlock(&data->mutex);
+            triggerBuzzerPWM(duration, frequency);
+        } else {
+            pthread_mutex_unlock(&data->mutex);
+        }
+        usleep(100000);
+    }
+    return NULL;
+}
+```
+
+
+
+#### 6. 공유 데이터 구조  
+**설명**  
+스레드 간 데이터 공유 및 동기화를 위한 구조체를 정의합니다.
+
+**주요 코드**  
+```c
+typedef struct {
+    short x, y, z;
+    int triggerBuzzer;
+    int running;
+    pthread_mutex_t mutex;
+} SharedData;
+```
+
+
+
+#### 7. 메인 함수  
+**설명**
+시스템 초기화 및 스레드 실행을 통해 전체 금고 동작을 관리합니다.
+
+**주요 코드**
+```c
+int main() {
+    SharedData data = { .x = 0, .y = 0, .z = 0, .triggerBuzzer = 0, .running = 1 };
+    pthread_mutex_init(&data.mutex, NULL);
+
+    if (initSPI() == -1) return -1;
+
+    pthread_t sensorThreadId, buzzerThreadId;
+    pthread_create(&sensorThreadId, NULL, sensorThread, &data);
+    pthread_create(&buzzerThreadId, NULL, buzzerThread, &data);
+
+    printf("Press ENTER to exit.\n");
+    getchar();
+
+    data.running = 0;
+    pthread_join(sensorThreadId, NULL);
+    pthread_join(buzzerThreadId, NULL);
+    pthread_mutex_destroy(&data.mutex);
+
+    return 0;
+}
+```
+
+
+
+### 🎥 8. 프로젝트 시연 동영상
 - **프로젝트 시연 동영상**  
   - 잠금 해제 1
     - 첫 시도에 잠금 해제하는 경우
