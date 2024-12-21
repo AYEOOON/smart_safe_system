@@ -28,7 +28,7 @@
 - 비밀번호 인증, 복구 질문, 움직임 감지 등의 기능을 통해 **보안성을 극대화**
 
 #### **금고 전체 사진**
-<img src="https://github.com/user-attachments/assets/11a4bfbf-36cb-4f68-bb08-fe2825013a4e" width="300" />
+<img src="https://github.com/user-attachments/assets/11a4bfbf-36cb-4f68-bb08-fe2825013a4e" width="400" />
 
 
 ### 🌟 2. 주요 기능
@@ -72,7 +72,7 @@
 
 ### ⚙️ 4. 하드웨어 구성
 ### 전체 회로도
-![회로도 ps](https://github.com/user-attachments/assets/ce25c9fe-ccd8-4521-aaa5-56a0608f9697)
+<img src="https://github.com/user-attachments/assets/ce25c9fe-ccd8-4521-aaa5-56a0608f9697" width="700" />
 
 
 **라즈베리 파이 및 GPIO 핀 연결**
