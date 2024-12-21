@@ -19,7 +19,7 @@
 8. [프로젝트 시연 동영상](#-8-프로젝트-시연-동영상)   
 
 
-### 📌 1. 프로젝트 개요
+## 📌 1. 프로젝트 개요
 
 **스마트 금고 시스템**은 보안을 강화하고 사용자 편의성을 높이기 위해 설계된 임베디드 시스템 프로젝트입니다.  
 
@@ -31,7 +31,7 @@
 <img src="https://github.com/user-attachments/assets/11a4bfbf-36cb-4f68-bb08-fe2825013a4e" width="400" />
 
 
-### 🌟 2. 주요 기능
+## 🌟 2. 주요 기능
 
 - **스위치를 이용한 블루투스 연결**  
   - 사용자가 **스위치를 누르면 블루투스 통신**이 활성화.
@@ -55,7 +55,7 @@
   - 금고의 움직임 또는 충격 감지 시 경고음 발생.
 
 
-### 🛠️ 3. 설계 개요
+## 🛠️ 3. 설계 개요
 #### 설계 사진
 ![image](https://github.com/user-attachments/assets/0f0c3a2d-b5da-4e7c-aabe-8555c8d7e592)
 
@@ -70,7 +70,7 @@
 - **부저**: 경고 알림 출력.  
 
 
-### ⚙️ 4. 하드웨어 구성
+## ⚙️ 4. 하드웨어 구성
 ### 전체 회로도
 <img src="https://github.com/user-attachments/assets/ce25c9fe-ccd8-4521-aaa5-56a0608f9697" width="700" />
 
@@ -92,7 +92,7 @@
 
 
 
-### 💻 5. 소프트웨어 구성
+## 💻 5. 소프트웨어 구성
 
 #### (1) SPI 기반 센서 제어
 - **WiringPi 라이브러리 사용**  
@@ -146,28 +146,136 @@
   - 소프트웨어 PWM 방식으로 구현되어 유연한 제어 가능.
 
 
-### 🧩 6. 로직 전체 설명:
+## 🧩 6. 로직 전체 설명:
 ![image](https://github.com/user-attachments/assets/36a39a92-2c1c-4ad0-b660-2f633faeff19)
 
-1. **사용자 접근 감지 및 블루투스 연결**:
-   - 스위치를 눌러 블루투스 연결을 시도하고, 성공 시 비밀번호 입력 요청.
+#### (1) 초기화
+- GPIO 핀과 UART 초기화를 통해 금고의 각 하드웨어가 작동 준비를 완료합니다.
+- 초기화 과정에서 블루투스 통신을 활성화하여 스마트폰 앱과의 연결을 설정합니다.
 
-2. **비밀번호 인증**:
-   - 비밀번호가 일치하면 금고 잠금 해제 및 성공 LED 점등.
-   - 불일치 시 실패 횟수를 기록하며, 3회 초과 시 검증 질문 요청.
+#### (2) 비밀번호 입력 및 인증
+- 사용자는 스마트폰 앱을 통해 4자리 비밀번호를 입력합니다.
+- 비밀번호 입력 시, UART로 데이터를 수신하고 입력값을 검증하는 로직이 실행됩니다.
+- 입력값이 설정된 비밀번호와 일치하면 서보모터가 작동하여 금고를 해제합니다.
+- 불일치 시 시도 횟수가 증가하며, 실패 메시지가 출력됩니다.
 
-3. **검증 질문**:
-   - 검증 질문에 응답이 정확하면 비밀번호 재입력 요청.
-   - 응답이 틀리면 시스템 잠금 및 부저 울림.
+#### (3) 비밀번호 복구 모드
+- 입력 실패 횟수가 **최대 허용 횟수(`MAC_ATTEMPTS`)**를 초과하면 복구 질문 모드가 활성화됩니다.
+- 사용자에게 복구 질문을 제시하고, 정답 입력 시 실패 횟수가 초기화되며 비밀번호 입력으로 복귀합니다.
+- 복구 질문에 실패하면 경고음과 함께 시스템이 종료됩니다.
 
-4. **금고 움직임 감지**:
-   - 금고 이동 또는 충격 시 부저 울림 및 경고 LED 점등.
-   - 이상이 없으면 정상 대기 상태 유지.
+#### (4) 금고 잠금 및 LED 제어
+- 인증이 성공하거나 금고를 잠그는 경우 서보모터와 LED의 상태를 변경합니다.
+  - **해제 상태**: 서보모터 각도 250°, 초록색 LED 점등.
+  - **잠금 상태**: 서보모터 각도 50°, 빨간색 LED 점등.
 
-### ⚓ 7. 코드 구조 및 설명
-스마트 금고 시스템의 코드는 기능별로 나뉘어 있으며, 주요 구성 요소는 다음과 같습니다:
+#### (5) 경고음 발생
+- 가속도 센서 데이터를 지속적으로 모니터링하며, 일정 기준 이상의 움직임을 감지하면 경고음을 발생시킵니다.
 
 
+
+## ⚓ 7. 코드 구조 및 설명  
+스마트 금고 시스템의 코드는 기능별로 나뉘어 있으며, 주요 구성 요소는 다음과 같습니다:  
+
+### 주요 변수  
+- `password`, `recoveryAnswer`  
+  금고의 비밀번호와 복구 질문의 정답을 정의.
+- `safeUnlocked`  
+  금고 잠금 상태를 나타내는 플래그 (0: 잠김, 1: 해제).
+- `attempts`  
+  비밀번호 입력 실패 횟수를 추적.
+- `recoveryMode`  
+  복구 질문 상태를 제어 (0: 비활성화, 1: 활성화).
+
+### 주요 함수 정리
+
+### 1. ADXL345 관련 함수
+
+#### **초기화 및 레지스터 제어**
+- **`int initSPI()`**  
+  SPI 초기화를 수행하는 함수로, CS 핀과 SPI 설정을 초기화합니다.
+
+- **`void writeRegister_ADXL345(char address, char value)`**  
+  ADXL345의 레지스터에 데이터를 기록합니다.  
+  - **`address`**: 레지스터 주소  
+  - **`value`**: 기록할 값  
+
+- **`void readRegister_ADXL345(char registerAddress, int numBytes, char *values)`**  
+  ADXL345의 특정 레지스터에서 데이터를 읽어옵니다.  
+  - **`registerAddress`**: 읽을 레지스터 주소  
+  - **`numBytes`**: 읽을 데이터 크기  
+  - **`values`**: 데이터를 저장할 버퍼  
+
+---
+
+#### **가속도 센서 데이터 읽기**
+- **`void readAccelerometerData(short *x, short *y, short *z)`**  
+  ADXL345 센서의 X, Y, Z 축 데이터를 읽어 반환합니다.  
+  - **`x`**, **`y`**, **`z`**: 축별 데이터가 저장됩니다.
+
+---
+
+#### **스레드 관련**
+- **`void *sensorThread(void *arg)`**  
+  가속도 센서 데이터를 지속적으로 읽는 스레드 함수입니다.  
+  - **`arg`**: 공유 데이터 구조체 포인터(`SharedData`)
+
+- **`void *buzzerThread(void *arg)`**  
+  부저를 제어하는 스레드 함수입니다.  
+  - **`arg`**: 공유 데이터 구조체 포인터(`SharedData`)
+
+---
+
+#### **부저 제어**
+- **`void triggerBuzzer(int durationMs)`**  
+  일정 시간 동안 부저를 작동시킵니다.  
+  - **`durationMs`**: 부저 작동 시간(밀리초)
+
+- **`void triggerBuzzerPWM(int durationMs, int frequency)`**  
+  PWM을 사용하여 부저를 제어합니다.  
+  - **`durationMs`**: 부저 작동 시간(밀리초)  
+  - **`frequency`**: 부저의 작동 주파수(Hz)
+
+---
+
+### 2. 비밀번호 및 서보모터 관련 함수
+
+#### **UART 및 서보모터 제어**
+- **`void rotate_Servo(int angle)`**  
+  서보모터의 각도를 제어합니다.  
+  - **`angle`**: 설정할 각도
+
+- **`void serialWriteBytes(const int fd, const char* s)`**  
+  UART를 통해 데이터를 전송합니다.  
+  - **`fd`**: UART 파일 디스크립터  
+  - **`s`**: 전송할 데이터 문자열  
+
+- **`unsigned char serialRead(const int fd)`**  
+  UART를 통해 데이터를 수신합니다.  
+  - **`fd`**: UART 파일 디스크립터  
+  - **반환값**: 수신된 1바이트 데이터  
+
+---
+
+#### **비밀번호 및 복구 질문**
+- **`int checkPassword(const char* input)`**  
+  입력된 비밀번호를 저장된 비밀번호와 비교하여 일치 여부를 확인합니다.  
+  - **`input`**: 입력된 비밀번호 문자열  
+  - **반환값**: 일치하면 `1`, 불일치하면 `0`
+
+- **`int checkRecoveryAnswer(const char* input)`**  
+  입력된 복구 질문의 답변을 저장된 정답과 비교합니다.  
+  - **`input`**: 입력된 답변 문자열  
+  - **반환값**: 일치하면 `1`, 불일치하면 `0`
+
+---
+
+#### **비밀번호 관리**
+- **`void checkPW()`**  
+  비밀번호 입력 및 복구 질문 처리를 포함하여 금고의 잠금 상태를 관리하는 주요 로직입니다.
+
+
+### 코드 주요 부분 설명  
 #### 1. SPI 초기화 및 GPIO 설정
 
 **설명**  
@@ -242,48 +350,7 @@ void readAccelerometerData(short *x, short *y, short *z) {
 ```
 
 
-
-#### 3. ADXL345 센서 제어
-
-**설명**  
-가속도 센서와 SPI 통신을 통해 데이터를 읽고 금고의 움직임을 감지합니다.
-
-**주요 코드**  
-
-**(1) 레지스터 쓰기 및 읽기***
-```c
-void writeRegister_ADXL345(char address, char value) {
-    unsigned char buff[2] = { address, value };
-    digitalWrite(CS_GPIO, LOW);
-    wiringPiSPIDataRW(SPI_CH, buff, 2);
-    digitalWrite(CS_GPIO, HIGH);
-}
-
-void readRegister_ADXL345(char registerAddress, int numBytes, char *values) {
-    values[0] = 0x80 | registerAddress;
-    if (numBytes > 1) values[0] |= 0x40;
-
-    digitalWrite(CS_GPIO, LOW);
-    wiringPiSPIDataRW(SPI_CH, values, numBytes + 1);
-    digitalWrite(CS_GPIO, HIGH);
-}
-```
-
-#### (2) 가속도 데이터 읽기
-```c
-void readAccelerometerData(short *x, short *y, short *z) {
-    unsigned char buffer[7] = {0};
-    readRegister_ADXL345(DATAX0, 6, buffer);
-
-    *x = ((short)buffer[2] << 8) | (short)buffer[1];
-    *y = ((short)buffer[4] << 8) | (short)buffer[3];
-    *z = ((short)buffer[6] << 8) | (short)buffer[5];
-}
-```
-
-
-
-#### 4. 부저 제어  
+#### 3. 부저 제어  
 **설명**
 부저를 통해 경고음을 발생시키며, 소프트웨어 PWM을 사용하여 주파수를 제어합니다.
 
@@ -305,7 +372,7 @@ void triggerBuzzerPWM(int durationMs, int frequency) {
 
 
 
-#### 5. 멀티스레드 구성
+#### 4. 멀티스레드 구성
 **설명**  
 스레드를 사용하여 센서 데이터를 읽고, 부저를 제어하는 작업을 병렬로 처리합니다.
 
@@ -364,7 +431,7 @@ void *buzzerThread(void *arg) {
 
 
 
-#### 6. 공유 데이터 구조  
+#### 5. 공유 데이터 구조  
 **설명**  
 스레드 간 데이터 공유 및 동기화를 위한 구조체를 정의합니다.
 
@@ -380,7 +447,7 @@ typedef struct {
 
 
 
-#### 7. 메인 함수  
+#### 6. 메인 함수  
 **설명**  
 시스템 초기화 및 스레드 실행을 통해 전체 금고 동작을 관리합니다.
 
@@ -410,7 +477,7 @@ int main() {
 
 
 
-### 🎥 8. 프로젝트 시연 동영상
+## 🎥 8. 프로젝트 시연 동영상
 - **프로젝트 시연 동영상**  
   - 잠금 해제 1
     - 첫 시도에 잠금 해제하는 경우
