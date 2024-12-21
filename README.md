@@ -71,6 +71,9 @@
 
 
 ### ⚙️ 4. 하드웨어 구성
+### 전체 회로도
+![회로도 ps](https://github.com/user-attachments/assets/ce25c9fe-ccd8-4521-aaa5-56a0608f9697)
+
 
 **라즈베리 파이 및 GPIO 핀 연결**
 | 구성 요소           | 역할 및 상태                 | GPIO 핀  |
