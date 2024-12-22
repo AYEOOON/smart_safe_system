@@ -77,7 +77,7 @@
 
 ## ⚙️ 4. 하드웨어 구성
 ### 전체 회로도
-<img src="https://github.com/user-attachments/assets/ce25c9fe-ccd8-4521-aaa5-56a0608f9697" width="700" />
+![Untitled Sketch_bb](https://github.com/user-attachments/assets/8ecdda23-e360-4620-a242-5765667dd562)
 
 
 **라즈베리 파이 및 GPIO 핀 연결**
